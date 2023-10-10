@@ -1,29 +1,30 @@
 * Docker Interactive
-Used to make existing docker containers more suitable for interactive use.
-The goal is to make running programs in the docker container be as close to the host user experience as possible:
-this means operating with the same user and group ids as the host user, seeing all devices on the host machine,
-and being accessible via the host's network settings.
+Provide interactive docker containers that can directly interact with the host hardware.
+The idea is to reduce docker's isolation as much as possible while still allowing the user to access
+completely different binaries, libraries, and Linux distributions.
 
-Initially, this was used by me to do ROS development on non-Ubuntu machines with minimal differences between
-that experience and running ROS natively on Ubuntu. A shared directory allows editing of all files using host tools.
+** Why?
+This program was primarily developed to allow a user to run different ROS distributions on the same computer and enable
+everything in the container to directly interact with hardware, while using the same permissions as a regular user of the host machine.
 
+* Usage
+1. =dockint init [directory]= makes =directory= a =dockint= environment (defaults to the current directory)
+   - Creates a =.dockint= sub-directory
+   - Places the =dockint= =Dockerfile= and other =dockint= files that should be copied into the environment in the =dockint= directory
 
-* Example Usage
-1. ~./dockint from ros:noetic bash~
-   - This will build ~ros:noetic~ container from dockerhub, prompt you to create a home directory on the host (default to image name =~/ros:noetic=), and launch bash.
-   - The contents of ~/ros:noetic~ are mounted to the home directory in the container.
-2. Run =./dockint= with no arguments to print usage information. 
+2. =dockint from image=, when run within a =dockint= environment:
+   - Builds the =dockint= environment from the specified docker image
+3. =dockint run [command]= runs the command interactively in the docker image
+   - Defaults to =/usr/bin/bash=
+
 
 * Features
-1. Simple script to build the image, launch the container, and run commands in it
-2. Runs as your user id inside the container
-3. Enables launching of X Windows from within the container
-4. The docker container is run in privileged mode and accesses all the host devices
-   - This lets you experiment with, for example, plugging/unplugging USB serial devices
-   - You are not root in the container.
-   - However, users with access to the docker daemon can of course run the container as root if they want to.
-5. Use host networking to enable transparent network access.
-   - Allows you to run =rosmaster= within the docker container and have remote nodes find the master
-     using your host's networking setup.
+1. Inside the container, everything is run with the same =uid= and =username= as on the host.
+2. The container has the same users and groups as the host system
+   - If the user on the host system has =sudo= access and =sudo= is installed, the user in the will have =sudo= access
+   - =/etc/shadow= is not copied into the container, so the user can have a different password
+3. X Windows and GUI applications can be run within the container
+4. The docker container is run in privileged mode and has access to all the host devices even if they are hot-plugged.
+5. The docker container has the same ip address as the host and shares ports and network setup with it.
 
 
