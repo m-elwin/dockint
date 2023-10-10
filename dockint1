@@ -4,8 +4,7 @@ set -e
 usage=\
 "Usage: dockint init [directory]
     or: dockint from <base_image>
-    or: dockint stop <base_image>
-    or: dockint run <base_image> <cmd>
+    or: dockint activate [directory]
 
     Work interactively with a docker container as if it's environment were on the host system.
     You work as your current user, all devices are available, and ports running in the container are shared with the host.
@@ -14,6 +13,9 @@ usage=\
     1. init [directory] : turn the specified directory (defaults to current directory) into a dockint environment
     2. from <base_image> : build the docker container in the current directory, deriving it from the specified base image
        - This will initialize a =.dockint= environment in the current directory if it has not yet been initialized
+    3. activate [directory] : Start working inside the docker container connected with the current dockint environment
+       - The docker container is never cleaned up by this script so changes will persist in the container
+       - Subsequent calls to activate for the same dockint environment will run in the same container
 "
 
 # The base dockerfile
@@ -51,63 +53,81 @@ fi
 
 
 
+function docker_activate {
+    if [ -z "$2" ];
+    then
+        homedir="$(pwd)"
+        dockintdir="$homedir/.dockint"
+    else
+        homedir=$2
+        dockintdir="$2/.dockint"
+    fi
 
-# start the docker container
-function docker_container_start {
-    # run docker, giving it access to the specified devices and X windows
-    # the cap-add and security-opt lets me use gdb to debug ros nodes
-    # if $homedir does not exist, nothing will be mounted but the command will
-    # still work
-    xhost +local:root
-    $DOCKER run -itd --rm --name "$container" \
-         --hostname "$HOST" \
-         -v $homedir:/home/$USER \
-         -v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
-         -v /etc/machine-id:/etc/machine-id \
-         -v /var/run/dbus:/var/run/dbus \
-         --device /dev/dri \
-         --cap-add=SYS_PTRACE \
-         --security-opt seccomp=unconfined \
-         --privileged \
-         --network=host \
-         -v /dev/:/dev \
-         -v $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR \
-         -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
-         "$image"
+    if [ ! -d "$dockintdir" ];
+    then
+        echo "The specified directory ($dockintdir) does not exist"
+        exit 1
+    fi
 
+    if [ ! -e "$dockintdir"/image_name ];
+    then
+        echo "Please run dockint from <image> to finish initializing the docker container"
+        exit 1
+    fi
+    if [ ! -e "$dockintdir"/container_name ];
+    then
+        echo "Please run dockint from <image> to finish initializing the docker container"
+        exit 1
+    fi
+
+    # If the container is not running
+    container=$(cat $dockintdir/container_name)
+    if [ -z $($DOCKER ps -q --filter "name=$container" --filter "status=running") ];
+    then
+        # if the container does not exist run it (which makes it exist and starts it
+        if [ -z $(DOCKER ps -q --filter "name=$container") ];
+        then
+            # run docker, giving it access to the specified devices and X windows
+            # the cap-add and security-opt lets me use gdb to debug ros nodes
+            xhost +local:root
+            $DOCKER run -itd  --name "$(cat $dockintdir/container_name)" \
+                --hostname "$HOST" \
+                -v $homedir:/home/$USER \
+                -v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
+                -v /etc/machine-id:/etc/machine-id \
+                -v /var/run/dbus:/var/run/dbus \
+                --device /dev/dri \
+                --cap-add=SYS_PTRACE \
+                --security-opt seccomp=unconfined \
+                --privileged \
+                --network=host \
+                -v /dev/:/dev \
+                -v $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR \
+                -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
+                "$(cat $dockintdir/image_name)"
+
+            if [ $? -ne 0 ]; then
+                echo "Failed to run docker container $container."
+                exit 1
+            fi
+         else
+               #the container exists it just needs to be started
+             $DOCKER start $container
+             if [ $? -ne 0 ]; then
+                 echo "Failed to start docker container $container."
+                 exit 1
+             fi
+        fi
+
+    fi
+    # At this point the container is running, so execut bash
+    $DOCKER exec -it $container /bin/bash
     if [ $? -ne 0 ]; then
-        echo "Failed to start docker container $container."
+        echo "Failed to exec /bin/bash in docker container $container."
         exit 1
     fi
 }
 
-
-function interactive_start {
-    # check if the docker image has been created and if not create one
-    if [ -z "$($DOCKER images -q $base_image)" ]; then
-        docker_build_image
-    fi
-
-    # check if the docker image is running and if not start it
-    if [ -z "$($DOCKER ps -q -f NAME=$container)" ]; then
-        if [ -z $homedir ]; then
-            homedir=~/$base_image
-        fi
-        if [ ! -d $homedir ]; then
-            echo "The directory $homedir, to be mounted in the container at /home/$USER, does not exist."
-            read -r -p "Would you like to create it [y/N]? (Otherwise /home/$USER will be mounted in the container) " response
-            case "$response" in
-                [yY])
-                    mkdir -p $homedir
-                    ;;
-                *)
-                    # docker creates non-existant directories automatically, so set this to empty to prevent that
-                    homedir=""
-            esac
-        fi
-        docker_container_start
-    fi
-}
 
 # Initialize the dockint environment by creating the .dockint directory
 # This directory contains docker files and other items in the context
@@ -132,13 +152,17 @@ function docker_build_image {
         exit 1
     fi
     base_image="$1"
-    image_tag=$(basename $(pwd))_img
     if [ ! -d ".dockint" ];
     then
         init_dockint_environment
     fi
+    name=$(pwd | tr '/' '_') 
+    name="${name:1}" # remove leading underscore
+    image_tag=${name}_img
+    container=${name}_container
     cd .dockint
-
+    echo $image_tag > image_name
+    echo $container > container_name
     $DOCKER build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg UNAME=$USER --build-arg BASE=$base_image --tag "$image_tag" .
     if [ $? -ne 0 ]; then
         echo "Failed to create docker image $image"
@@ -153,6 +177,10 @@ case $1 in
         ;;
     from)
         docker_build_image $2
+        exit 0
+        ;;
+    activate)
+        docker_activate $2
         exit 0
         ;;
     *)

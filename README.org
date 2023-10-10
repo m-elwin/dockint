@@ -17,7 +17,6 @@ everything in the container to directly interact with hardware, while using the 
 3. =dockint run [command]= runs the command interactively in the docker image
    - Defaults to =/usr/bin/bash=
 
-
 * Features
 1. Inside the container, everything is run with the same =uid= and =username= as on the host.
 2. The container has the same users and groups as the host system
@@ -28,3 +27,10 @@ everything in the container to directly interact with hardware, while using the 
 5. The docker container has the same ip address as the host and shares ports and network setup with it.
 
 
+* Dockint Directory
+- Each dockint environment contains a =.dockint= directory.
+- dockint/Dockerfile is created when =dockint init= is called. 
+- This file contains the context for the docker image that is built.
+- If the image is built there is a file =.dockint/image_name= which contains the name of the image associated with the dockint directory
+- The container name is in a file called =.dockint/container_name=. This is the name of the container that will be used with the dockint directory
+  - This is designed to persist, so that all activations of a dockint environment use the same container
