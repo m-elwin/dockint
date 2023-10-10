@@ -5,6 +5,7 @@ usage=\
 "Usage: dockint init [directory]
     or: dockint from <base_image>
     or: dockint activate [directory]
+    or: dockint root [directory]
 
     Work interactively with a docker container as if it's environment were on the host system.
     You work as your current user, all devices are available, and ports running in the container are shared with the host.
@@ -16,6 +17,14 @@ usage=\
     3. activate [directory] : Start working inside the docker container connected with the current dockint environment
        - The docker container is never cleaned up by this script so changes will persist in the container
        - Subsequent calls to activate for the same dockint environment will run in the same container
+       - The user will have no password set, you can set a password with passwd inside the container
+    4. root [directory] : enter the docker container as root
+       - This technically gives you root access to the system, since you have access to dev (but to really mess anything up you have to explicitly mount the host filesystem)
+       - Anyone on your computer who can access docker essentially has root access anyway
+       - Useful for setting up packages or installing sudo
+    5. reset [directory] : reset the docker cotnainer in the dockint environment
+       - By default all changes you make to a dockint environment happen in a single container, which persists (including across reboots)
+       - Reset will undo all these changes
 "
 
 # The base dockerfile
@@ -34,10 +43,12 @@ ENV QT_X11_NO_MITSHM=1
 ARG UNAME
 ARG UID
 ARG GID
+ARG PASS
 
 COPY passwd /etc/passwd
 COPY group /etc/group
 
+RUN passwd -d $UNAME
 # change to the desired user
 USER $UNAME
 WORKDIR /home/$UNAME'
@@ -85,7 +96,7 @@ function docker_activate {
     if [ -z $($DOCKER ps -q --filter "name=$container" --filter "status=running") ];
     then
         # if the container does not exist run it (which makes it exist and starts it
-        if [ -z $(DOCKER ps -q --filter "name=$container") ];
+        if [ -z $($DOCKER ps -q --filter "name=$container") ];
         then
             # run docker, giving it access to the specified devices and X windows
             # the cap-add and security-opt lets me use gdb to debug ros nodes
