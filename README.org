@@ -14,8 +14,16 @@ everything in the container to directly interact with hardware, while using the 
 
 2. =dockint from image=, when run within a =dockint= environment:
    - Builds the =dockint= environment from the specified docker image
-3. =dockint run [command]= runs the command interactively in the docker image
-   - Defaults to =/usr/bin/bash=
+
+3. =dockint activate [directory]= places the user in a bash shell in the specified dockint environment
+   - Default directory is the current directory
+
+3. =dockint root [directory]= places the user as root in a bash shell in the specified dockint environment
+   - Root in this container can access the host system (via /dev) so be careful
+   - Default directory is the current directory
+4. =dockint reset [directory]
+   - Default directory is the current directory
+   - Removes the docker container, undoing all the changes you have made
 
 * Features
 1. Inside the container, everything is run with the same =uid= and =username= as on the host.
@@ -29,7 +37,7 @@ everything in the container to directly interact with hardware, while using the 
 
 * Dockint Directory
 - Each dockint environment contains a =.dockint= directory.
-- dockint/Dockerfile is created when =dockint init= is called. 
+- dockint/Dockerfile is created when =dockint init= is called.
 - This file contains the context for the docker image that is built.
 - If the image is built there is a file =.dockint/image_name= which contains the name of the image associated with the dockint directory
 - The container name is in a file called =.dockint/container_name=. This is the name of the container that will be used with the dockint directory
