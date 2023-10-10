@@ -63,15 +63,14 @@ else
 fi
 
 
-
 function docker_activate {
-    if [ -z "$2" ];
+    if [ -z "$1" ];
     then
         homedir="$(pwd)"
         dockintdir="$homedir/.dockint"
     else
-        homedir=$2
-        dockintdir="$2/.dockint"
+        homedir=$1
+        dockintdir="$1/.dockint"
     fi
 
     if [ ! -d "$dockintdir" ];
@@ -132,7 +131,7 @@ function docker_activate {
 
     fi
     # At this point the container is running, so execut bash
-    $DOCKER exec -it $container /bin/bash
+    $DOCKER exec -it -u $2 $container /bin/bash
     if [ $? -ne 0 ]; then
         echo "Failed to exec /bin/bash in docker container $container."
         exit 1
@@ -181,6 +180,38 @@ function docker_build_image {
     fi
 }
 
+function docker_remove {
+    if [ -z "$1" ];
+    then
+        homedir="$(pwd)"
+        dockintdir="$homedir/.dockint"
+    else
+        homedir=$1
+        dockintdir="$1/.dockint"
+    fi
+
+    if [ ! -d "$dockintdir" ];
+    then
+        echo "The specified directory ($dockintdir) does not exist"
+        exit 1
+    fi
+
+    if [ ! -e "$dockintdir"/image_name ];
+    then
+        echo "Please run dockint from <image> to finish initializing the docker container"
+        exit 1
+    fi
+    if [ ! -e "$dockintdir"/container_name ];
+    then
+        echo "Please run dockint from <image> to finish initializing the docker container"
+        exit 1
+    fi
+
+    container=$(cat $dockintdir/container_name)
+    $DOCKER stop $container
+    $DOCKER rm $container
+}
+
 case $1 in
     init)
         init_dockint_environment $2
@@ -191,7 +222,15 @@ case $1 in
         exit 0
         ;;
     activate)
-        docker_activate $2
+        docker_activate $2 $USER
+        exit 0
+        ;;
+    root)
+        docker_activate $2 root
+        exit 0
+        ;;
+    reset)
+        docker_remove $2
         exit 0
         ;;
     *)
