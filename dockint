@@ -220,12 +220,8 @@ case $1 in
         init_dockint_environment $2
         exit 0
         ;;
-    image)
+    from)
         docker_build_image $2
-        exit 0
-        ;;
-    file)
-        docker_build_file $2
         exit 0
         ;;
     activate)
