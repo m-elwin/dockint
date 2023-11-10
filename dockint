@@ -164,6 +164,7 @@ docker_build_image() {
         exit 1
     fi
     base_image="$1"
+    echo "Building base image $base_image"
     if [ ! -d ".dockint" ];
     then
         init_dockint_environment
