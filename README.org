@@ -21,7 +21,7 @@ everything in the container to directly interact with hardware, while using the 
 3. =dockint root [directory]= places the user as root in a bash shell in the specified dockint environment
    - Root in this container can access the host system (via /dev) so be careful
    - Default directory is the current directory
-4. =dockint reset [directory]
+4. =dockint reset [directory]=
    - Default directory is the current directory
    - Removes the docker container, undoing all the changes you have made
 
