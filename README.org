@@ -7,6 +7,26 @@ completely different binaries, libraries, and Linux distributions.
 This program was primarily developed to allow a user to run different ROS distributions on the same computer and enable
 everything in the container to directly interact with hardware, while using the same permissions as a regular user of the host machine.
 
+* Quickstart
+#+BEGIN_SRC bash
+# clone this repository
+# We will assume it is in ~/dockint for these instructions
+git clone https://github.com/m-elwin/dockint
+
+# Let's say you want the ROS 2 kilted docker container
+mkdir ~/kilted
+cd ~/kilted
+~/dockint/dockint from osrf/ros:kilted-desktop
+
+# Enter the docker container as your user
+# and with ~/kilted mounted as the home directory
+~/dockint/dockint activate
+
+# Enter the container as root
+~/dockint/dockint root
+
+#+END_SRC
+
 * Usage
 1. =dockint init [directory]= makes =directory= a =dockint= environment (defaults to the current directory)
    - Creates a =.dockint= sub-directory
