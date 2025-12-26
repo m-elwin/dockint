@@ -69,11 +69,10 @@ docker_activate() {
     if [ -z "$2" ];
     then
         homedir="$(pwd)"
-        dockintdir="$homedir/.dockint"
     else
-        homedir=$2
-        dockintdir="$2/.dockint"
+        homedir="$2"
     fi
+    dockintdir="$homedir/.dockint"
 
     if [ ! -d "$dockintdir" ];
     then
@@ -238,7 +237,7 @@ case $1 in
         exit 0
         ;;
     *)
-        printf "$usage"
+        printf '%s' "$usage"
         exit 0
         ;;
 esac
