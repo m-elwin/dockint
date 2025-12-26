@@ -11,6 +11,7 @@ everything in the container to directly interact with hardware, while using the 
 1. =dockint init [directory]= makes =directory= a =dockint= environment (defaults to the current directory)
    - Creates a =.dockint= sub-directory
    - Places the =dockint= =Dockerfile= and other =dockint= files that should be copied into the environment in the =dockint= directory
+   - The Dockerfile can be modified and customized before using
 
 2. =dockint from image=, when run within a =dockint= environment:
    - Builds the =dockint= environment from the specified docker image
