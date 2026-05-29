@@ -97,7 +97,7 @@ docker_activate() {
     if [ -z "$($DOCKER ps -q --filter "name=$container" --filter "status=running")" ];
     then
         # if the container does not exist run it (which makes it exist and starts it
-        if [ -z "$($DOCKER ps -q --filter "name=$container")" ];
+        if [ -z "$($DOCKER container ls -a -q --filter "name=$container")" ];
         then
             # run docker, giving it access to the specified devices and X windows
             # the cap-add and security-opt lets me use gdb to debug ros nodes
