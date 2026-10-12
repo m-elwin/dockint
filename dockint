@@ -151,12 +151,13 @@ docker_activate() {
         user=0
         userns="env HOME=/home/$1 unshare --user --map-user=$(id -u) --map-group=$(id -g)"
     fi
-    # END_CITATION
-    if ! $DOCKER exec -it -u "$user" "$container" $userns /bin/bash;
+    # docker exec inherits the daemon's umask (0000 with rootless docker), so use the host's
+    if ! $DOCKER exec -it -u "$user" "$container" $userns sh -c "umask $(umask); exec /bin/bash";
     then
         echo "Failed to exec /bin/bash in docker container $container."
         exit 1
     fi
+    # END_CITATION
 }
 
 
