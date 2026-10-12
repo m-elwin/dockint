@@ -54,15 +54,24 @@ RUN passwd -d $UNAME
 USER $UNAME
 WORKDIR /home/$UNAME'
 
-
-# determine if we need to use sudo when calling docker
-if groups "$USER" | grep -q docker;
+# BEGIN_CITATION [1]
+# determine if we need to sudo when calling docker
+ROOTLESS=
+DEVMOUNT="-v /dev/:/dev"
+if docker info -f '{{.SecurityOptions}}' 2>/dev/null | grep -q rootless;
+then
+    DOCKER=docker
+    ROOTLESS=1
+    # Bind mounting /dev breaks pty allocation in rootless docker.
+    # --privileged still provides the devices, but not hot-plugged ones
+    DEVMOUNT=
+elif groups "$USER" | grep -q docker;
 then
     DOCKER=docker
 else
     DOCKER="sudo docker"
 fi
-
+# END_CITATION
 
 docker_activate() {
 # $1 user name
@@ -113,7 +122,7 @@ docker_activate() {
                 --security-opt seccomp=unconfined \
                 --privileged \
                 --network=host \
-                -v /dev/:/dev \
+                $DEVMOUNT \
                 -v "$XDG_RUNTIME_DIR":"$XDG_RUNTIME_DIR" \
                 -e XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
                 "$(cat "$dockintdir"/image_name)";
@@ -131,8 +140,19 @@ docker_activate() {
         fi
     fi
 
+    # BEGIN_CITATION [1]
     # At this point the container is running, so execute bash
-    if ! $DOCKER exec -it -u "$1" "$container" /bin/bash;
+    # With rootless docker, the host user is root in the container, so enter as root
+    # and use a nested user namespace to map it back to the user's uid
+    user="$1"
+    userns=
+    if [ -n "$ROOTLESS" ] && [ "$1" != root ];
+    then
+        user=0
+        userns="env HOME=/home/$1 unshare --user --map-user=$(id -u) --map-group=$(id -g)"
+    fi
+    # END_CITATION
+    if ! $DOCKER exec -it -u "$user" "$container" $userns /bin/bash;
     then
         echo "Failed to exec /bin/bash in docker container $container."
         exit 1

@@ -1,0 +1,2 @@
+[1] Claude Opus 5.5. Anthropic. Accessed on 10/12/2026.
+  - Made the script work with rootless docker installations
