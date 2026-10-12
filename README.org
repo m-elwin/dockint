@@ -40,9 +40,7 @@ cd ~/kilted
    - Default directory is the current directory
 
 3. =dockint root [directory]= places the user as root in a bash shell in the specified dockint environment
-   - Root in this container can access the host system (via /dev) so be careful
-   - Default directory is the current directory
-4. =dockint reset [directory]=
+   - Root in this container can access the host system (via /dev) so be careful - Default directory is the current directory 4. =dockint reset [directory]=
    - Default directory is the current directory
    - Removes the docker container, undoing all the changes you have made
 
@@ -54,7 +52,7 @@ cd ~/kilted
 3. X Windows and GUI applications can be run within the container
 4. The docker container is run in privileged mode and has access to all the host devices even if they are hot-plugged.
 5. The docker container has the same ip address as the host and shares ports and network setup with it.
-
+6. Works with rootless docker as well. In rootless mode, device changes are not automatically detected because the host's /dev cannot be mounted in a rootless container
 
 * Dockint Directory
 - Each dockint environment contains a =.dockint= directory.
